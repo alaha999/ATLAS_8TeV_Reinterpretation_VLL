@@ -11,9 +11,9 @@ parser =argparse.ArgumentParser()
 parser.add_argument('--filename'   ,type=str  ,required=True               ,help='histogram file location'              )
 parser.add_argument('--mass'       ,type=int  ,required=True               ,help='mass value of the signal'             )
 parser.add_argument('--printTable' ,type=bool ,required=False,default=False,help='print yield in nice table'            )
-parser.add_argument('--SR'         ,type=str  ,required=True ,default=1    ,help='SR between 1 to 20'                   )
 parser.add_argument('--sfactor'    ,type=int  ,required=False,default=1    ,help='multiply signal yield for limit tools')
-parser.add_argument('--mode'       ,type=str  ,required=False,default='nom',help='mode on signal (nominal, up, down)'   )
+parser.add_argument('--SR'         ,type=str  ,required=False              ,help='SR between 1 to 20'                   )
+parser.add_argument('--mode'       ,type=str  ,required=False              ,help='mode on signal (nominal, up, down)'   )
 
 args = parser.parse_args()
 #---------------------------------
@@ -243,8 +243,11 @@ ATLAS_8TeV_paperTable = HTlep_table + pTmin_table + MET_HTb150_table + MET_HTa15
 limit_result={}
 
 uncmode_=[]
-uncmode_.append(args.mode)
-uncmode_=["nom","up","down"]
+if(args.mode==None):
+    uncmode_=["nom","up","down"]
+else:
+    uncmode_.append(args.mode)
+    
 for uncmode in uncmode_:
     
     if(uncmode=='nom'    ):mode_=0;
@@ -254,17 +257,18 @@ for uncmode in uncmode_:
     signalTable = getSignalTable(SignalRegion,mode_)
     yield_table = get_yield(signalTable,ATLAS_8TeV_paperTable,20)
     
-    
-    for i in yield_table.keys():
-        print()
-        print("calculating limit for {i}.....")
-        print()
-        region = i
+    if(args.SR == None):
+        for i in yield_table.keys():
+            print("\nRunning combLim for all SR....\n")
+            print()
+            print("calculating limit for {i}.....")
+            print()
+            region = i
+            limit_result[region+'_'+uncmode+'__Mass'+str(args.mass)] = combLim(yield_table[region],args.mass)
+    else:    
+        ##do it individually for converging the limit setting tools    
+        region = 'SR'+str(args.SR)    
         limit_result[region+'_'+uncmode+'__Mass'+str(args.mass)] = combLim(yield_table[region],args.mass)
-        
-    ##do it individually for converging the limit setting tools    
-    #region = 'SR'+args.SR    
-    #limit_result[region+'_'+uncmode+'__Mass'+str(args.mass)] = combLim(yield_table[region],args.mass)
 
     #--print in a nice table
     if(args.printTable):
@@ -282,7 +286,18 @@ print()
 
 ##Save in disk
 modelName = args.filename.split('_')[1]
-jsonfilename= f'LimitOutput/{modelName}_M{args.mass}__{args.mode}_{timestamp}.json'
+tag=''
+if(args.SR==None):
+    tag='AllSR'
+else:tag=f'SR{args.SR}'
+
+if(args.mode==None):
+    tag = tag+'_NomUpDown'
+else:
+    tag = tag+'_'+args.mode
+
+    
+jsonfilename= f'LimitOutput/{modelName}_M{args.mass}__{tag}_{timestamp}.json'
 with open(jsonfilename,'w') as jsonfile:
     json.dump(limit_result,jsonfile)
 
