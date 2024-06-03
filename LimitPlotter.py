@@ -1,5 +1,5 @@
 import ROOT
-import os,json
+import os,json,datetime
 import ATLAS_table as ATLAS
 
 ##Make a handy dictionary for SR info
@@ -8,6 +8,17 @@ for item in ATLAS.SignalRegion:
     ATLAS_SR[item[0]]=item[1]
 
 #print(ATLAS_SR)
+def get_timestamp():
+    #-------------------------------
+    datetime_object = datetime.datetime.now()
+    datetime_object = datetime.datetime.strptime(str(datetime_object), "%Y-%m-%d %H:%M:%S.%f")
+    timestamp=str(datetime_object.year)+str(("%02d" % (datetime_object.month,)))+str(("%02d" % (datetime_object.day)))
+    timestamp+='_'+str(("%02d" % (datetime_object.hour,)))+str(("%02d" % (datetime_object.minute,)))+str(("%02d" % (datetime_object.second))) 
+    
+    return timestamp
+    
+
+timestamp = get_timestamp()
 
 #--------------------------------------------
 
@@ -58,7 +69,38 @@ def get_UpperLimit(values,SR,model):
     return upperLimit
 
 
-
+def get_color(SR):
+    #SR1-SR3  = Htlep == kRed
+    #SR3-SR6  = pTmin == kBlue
+    #SR7-SR10 = MET_HTb150 == kGreen
+    #SR11-SR14= MET_HTa150 == kGeen
+    #SR15-SR17= Meff = kOrange
+    #SR18-SR20= Meff_METa100 = kOrange
+    
+    color_palette ={
+        'SR1':ROOT.kRed+1,
+        'SR2':ROOT.kRed+2,
+        'SR3':ROOT.kRed-4,
+        'SR4':ROOT.kBlue,
+        'SR5':ROOT.kBlue+2,
+        'SR6':ROOT.kBlue-4,
+        'SR7':ROOT.kGreen+1,
+        'SR8':ROOT.kGreen+2,
+        'SR9':ROOT.kGreen+3,
+        'SR10':ROOT.kGreen-2,
+        'SR11':ROOT.kViolet+1,
+        'SR12':ROOT.kViolet+2,
+        'SR13':ROOT.kViolet+3,
+        'SR14':ROOT.kViolet-9,
+        'SR15':ROOT.kOrange,
+        'SR16':ROOT.kOrange+1,
+        'SR17':ROOT.kOrange+2,
+        'SR18':ROOT.kOrange-5,
+        'SR19':ROOT.kOrange-6,
+        'SR20':ROOT.kOrange-7,                
+    }
+    
+    return color_palette[SR]
 
 
 def plot_limit(limit,model):    
@@ -124,7 +166,7 @@ def plot_limit(limit,model):
         unc.SetLineColor(ROOT.kOrange)
         unc.SetFillStyle(1001)
     
-        median.SetLineColor(i+1)
+        median.SetLineColor(get_color(SR))
         median.SetLineWidth(2)
         median.SetLineStyle(1)
         median.SetMarkerStyle(20)
@@ -159,14 +201,15 @@ def plot_limit(limit,model):
     legend.Draw()
     
     
-    c.SaveAs(f"{model}_test_limit.pdf")
+    c.SaveAs(f"{model}_test_limit_{timestamp}.pdf")
+    c.SaveAs(f"{model}_test_limit_{timestamp}.png")
     c.Close()
 
 
 def main(model):
     values=[100,150,200,250]
     SR=[f'SR{i}' for i in range (1,21)]
-    
+    SR=['SR11','SR15']
     upperLimit={}
     for sr in SR:
         upperLimit[sr] = get_UpperLimit(values,sr,model)
@@ -179,4 +222,4 @@ def main(model):
 if(__name__=='__main__'):
     main('VLLTau')
     main('VLLEle')
-        
+    main('VLLMu')    
